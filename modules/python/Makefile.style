@@ -44,26 +44,74 @@ python/autoflake: bh/venv
 .PHONY: python/isort/check
 ## Check python imports using isort
 python/isort/check:
-	@$(DOCKER) pull alphachai/isort
 	@$(MAKE) python/lint/announce/isort
+	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
+		$(MAKE) python/isort/check/pipenv; \
+	else \
+		$(MAKE) python/isort/check/docker; \
+	fi;
+
+.PHONY: python/isort/check/pipenv
+python/isort/check/pipenv:
+	$(PIPENV_RUN) isort $(ISORT_FLAGS) --check-only $(PYTHON_LINT_TARGETS) --diff
+
+.PHONY: python/isort/check/docker
+python/isort/check/docker:
+	@$(DOCKER) pull alphachai/isort
 	@$(DOCKER) run -i --rm --user $$(id -u):$$(id -g) --mount type=bind,src=$$(pwd),dst=/app alphachai/isort $(ISORT_FLAGS) --check-only $(PYTHON_LINT_TARGETS) --diff
 
 .PHONY: python/isort
 ## Fix python imports using isort
 python/isort:
+	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
+		$(MAKE) python/isort/pipenv; \
+	else \
+		$(MAKE) python/isort/docker; \
+	fi;
+
+.PHONY: python/isort/pipenv
+python/isort/pipenv:
+	$(PIPENV_RUN) isort $(ISORT_FLAGS) $(PYTHON_LINT_TARGETS)
+
+.PHONY: python/isort/docker
+python/isort/docker:
 	@$(DOCKER) pull alphachai/isort
 	$(DOCKER) run -i --rm --user $$(id -u):$$(id -g) --mount type=bind,src=$$(pwd),dst=/app alphachai/isort $(ISORT_FLAGS) $(PYTHON_LINT_TARGETS)
 
 .PHONY: python/black/check
 ## Check python files using black
 python/black/check:
-	@$(DOCKER) pull alphachai/black
 	@$(MAKE) python/lint/announce/black
-	@$(DOCKER) run -i --rm --user $$(id -u):$$(id -g) --mount type=bind,src=$$(pwd),dst=/app alphachai/black --check $(PYTHON_LINT_TARGETS)
+	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
+		$(MAKE) python/black/check/pipenv; \
+	else \
+		$(MAKE) python/black/check/docker; \
+	fi;
+
+.PHONY: python/black/check/pipenv
+python/black/check/pipenv:
+	$(PIPENV_RUN) black --check $(PYTHON_LINT_TARGETS)
+
+.PHONY: python/black/check/docker
+python/black/check/docker:
+	@$(DOCKER) pull alphachai/black
+	$(DOCKER) run -i --rm --user $$(id -u):$$(id -g) --mount type=bind,src=$$(pwd),dst=/app alphachai/black --check $(PYTHON_LINT_TARGETS)
 
 .PHONY: python/black
 ## Reformat python files using black
 python/black:
+	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
+		$(MAKE) python/black/pipenv; \
+	else \
+		$(MAKE) python/black/docker; \
+	fi;
+
+.PHONY: python/black/pipenv
+python/black/pipenv:
+	$(PIPENV_RUN) black $(PYTHON_LINT_TARGETS)
+
+.PHONY: python/black/docker
+python/black/docker:
 	@$(DOCKER) pull alphachai/black
 	$(DOCKER) run -i --rm --user $$(id -u):$$(id -g) --mount type=bind,src=$$(pwd),dst=/app alphachai/black $(PYTHON_LINT_TARGETS)
 
