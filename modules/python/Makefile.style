@@ -13,6 +13,8 @@ FLAKE8_FLAGS:=--select=B,C,E,F,W,T4,B9 --ignore=E203,E231,E266,E501,W503 --outpu
 
 PYTHON_LINT_TARGETS?=$(shell find . $(PYTHON_TARGETS_FIND_FLAGS))
 
+JQ:= $(shell which jq 2>/dev/null)
+
 .PHONY: python/lint/targets
 python/lint/targets:
 	@VAR=( $(PYTHON_LINT_TARGETS) ); echo "Discovered $${#VAR[@]} files:"
@@ -45,7 +47,7 @@ python/autoflake: bh/venv
 ## Check python imports using isort
 python/isort/check:
 	@$(MAKE) python/lint/announce/isort
-	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
+	@if [[ -n "$(JQ)" ]] && [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
 		$(MAKE) python/isort/check/pipenv; \
 	else \
 		$(MAKE) python/isort/check/docker; \
@@ -63,7 +65,7 @@ python/isort/check/docker:
 .PHONY: python/isort
 ## Fix python imports using isort
 python/isort:
-	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
+	@if [[ -n "$(JQ)" ]] && [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep isort)" ]]; then \
 		$(MAKE) python/isort/pipenv; \
 	else \
 		$(MAKE) python/isort/docker; \
@@ -82,7 +84,7 @@ python/isort/docker:
 ## Check python files using black
 python/black/check:
 	@$(MAKE) python/lint/announce/black
-	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
+	@if [[ -n "$(JQ)" ]] && [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
 		$(MAKE) python/black/check/pipenv; \
 	else \
 		$(MAKE) python/black/check/docker; \
@@ -100,7 +102,7 @@ python/black/check/docker:
 .PHONY: python/black
 ## Reformat python files using black
 python/black:
-	@if [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
+	@if [[ -n "$(JQ)" ]] && [[ -n "$$(jq -r <Pipfile.lock '.develop | to_entries[] | .key + .value.version' | grep black)" ]]; then \
 		$(MAKE) python/black/pipenv; \
 	else \
 		$(MAKE) python/black/docker; \
